@@ -11,38 +11,32 @@ phases:
     runtime-versions:
       nodejs: 20
     commands:
-      - echo "Installing dependencies..."
+      - echo "Node version check"
       - node --version
-      - npm --version
 
   pre_build:
     commands:
       - echo "Logging in to Docker Hub..."
       - echo "$DOCKER_REGISTRY_PASSWORD" | docker login -u "$DOCKER_REGISTRY_USERNAME" --password-stdin
-      - export IMAGE_REPO_NAME="tws-online-shop-app-demo"
-      - export IMAGE_NAME="$DOCKER_REGISTRY_USERNAME/$IMAGE_REPO_NAME"
-      - echo "Image name will be -> $IMAGE_NAME"
+      - echo "Login successful"
 
   build:
     commands:
       - echo "Build started on $(date)"
-      - echo "Packaging application into zip..."
-      - zip -r online-shop-app.zip . --exclude "node_modules/*" --exclude ".git/*"
       - echo "Building Docker image..."
-      - docker build -t $IMAGE_NAME:latest .
+      - docker build -t "$DOCKER_REGISTRY_USERNAME/tws-online-shop-app-demo:latest" .
       - echo "Docker image built successfully"
 
   post_build:
     commands:
-      - echo "Build completed on $(date)"
-      - echo "Pushing Docker image to Docker Hub..."
-      - docker push $IMAGE_NAME:latest
-      - echo "Docker push successful"
+      - echo "Pushing Docker image..."
+      - docker push "$DOCKER_REGISTRY_USERNAME/tws-online-shop-app-demo:latest"
+      - echo "Push successful"
       - echo "Uploading zip to S3..."
+      - zip -r online-shop-app.zip . --exclude "node_modules/*" --exclude ".git/*"
       - aws s3 cp online-shop-app.zip s3://tws-online-shop-demo/online-shop-app/
-      - echo "S3 upload successful"
-      - echo "Writing image definitions file..."
-      - printf '{"ImageURI":"%s","Port":8000}' "$IMAGE_NAME:latest" > imageDefinitions.json
+      - echo "Writing image definitions..."
+      - printf '{"ImageURI":"%s","Port":8000}' "$DOCKER_REGISTRY_USERNAME/tws-online-shop-app-demo:latest" > imageDefinitions.json
       - cat imageDefinitions.json
 
 artifacts:
