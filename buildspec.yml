@@ -16,13 +16,16 @@ phases:
 
   pre_build:
     commands:
+      - echo "Cleaning variables..."
+      - DOCKER_REGISTRY_USERNAME=$(echo "$DOCKER_REGISTRY_USERNAME" | tr -d '[:space:]')
+      - DOCKER_REGISTRY_PASSWORD=$(echo "$DOCKER_REGISTRY_PASSWORD" | tr -d '\n\r')
+      - echo "Username is -> $DOCKER_REGISTRY_USERNAME"
       - echo "Logging in to Docker Hub..."
       - echo "$DOCKER_REGISTRY_PASSWORD" | docker login -u "$DOCKER_REGISTRY_USERNAME" --password-stdin
       - echo "Login successful"
 
   build:
     commands:
-      - echo "Build started on $(date)"
       - echo "Building Docker image..."
       - docker build -t "$DOCKER_REGISTRY_USERNAME/tws-online-shop-app-demo:latest" .
       - echo "Docker image built successfully"
@@ -32,10 +35,8 @@ phases:
       - echo "Pushing Docker image..."
       - docker push "$DOCKER_REGISTRY_USERNAME/tws-online-shop-app-demo:latest"
       - echo "Push successful"
-      - echo "Uploading zip to S3..."
       - zip -r online-shop-app.zip . --exclude "node_modules/*" --exclude ".git/*"
       - aws s3 cp online-shop-app.zip s3://tws-online-shop-demo/online-shop-app/
-      - echo "Writing image definitions..."
       - printf '{"ImageURI":"%s","Port":8000}' "$DOCKER_REGISTRY_USERNAME/tws-online-shop-app-demo:latest" > imageDefinitions.json
       - cat imageDefinitions.json
 
